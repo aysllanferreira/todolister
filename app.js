@@ -56,7 +56,7 @@ app.get("/", function(req, res){
             });
             res.redirect("/");
         } else {
-            res.render("list", {word: "Today", newItems: foundItems})
+            res.render("list", {listName: "Today", newItems: foundItems})
         }
     });
 });
@@ -75,7 +75,7 @@ app.get("/:customListName", function(req,res){
                 list.save();
                 res.redirect("/" + customListName);
             } else {
-                res.render("list", {word: foundList.name, newItems: foundList.items})
+                res.render("list", {listName: foundList.name, newItems: foundList.items})
             }
         }
     })
@@ -85,25 +85,48 @@ app.get("/:customListName", function(req,res){
 
 app.post("/", function(req, res){
     const itemName = req.body.newitem;
+    const listName = req.body.list;
 
     const item = new Item({
         name: itemName
     });
 
-    item.save();
+    if (listName === "Today"){
+            item.save();
+            res.redirect("/");
+    } else {
+        List.findOne({name: listName}, function(err, foundList){
+            foundList.items.push(item);
+            foundList.save();
+            res.redirect("/" + listName);
+        })
+    }
 
-    res.redirect("/");
+
 });
 
 app.post("/delete", function(req, res){
     const itemId = mongoose.Types.ObjectId(req.body.checkbox.trim());
+    const nomeLista = req.body.teste;
 
-    Item.findByIdAndRemove(itemId, function(err){
-        if (!err){
-            console.log(err);
-            res.redirect("/");
-        }
-    });
+    if(nomeLista === "Today"){
+        Item.findByIdAndRemove(itemId, function(err){
+            if (!err){
+                console.log(err);
+                res.redirect("/");
+            }
+        });
+    } else{
+        List.findOneAndUpdate({name: nomeLista}, {$pull: {items: {_id: itemId}}}, function(err, foundList){
+            if(!err){
+                res.redirect("/" + nomeLista)
+            }
+        });
+    }
+
+    
+
+    
 });
 
 app.listen(port, function(){
